@@ -1,3 +1,6 @@
+# Adding scons
+.sconsign.dblite
+
 # Python object files
 *.py[cd]
 *.py~
