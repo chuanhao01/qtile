@@ -20,12 +20,19 @@ a_test_config = f"""
 LOG_LEVEL={ll} ./scripts/xephyr -c {cf}
 """
 
+a_test_config_multiple = f"""
+. {ACTIVATE_VENV}
+LOG_LEVEL={ll} ./scripts/xephyr-multiple -c {cf}
+"""
+
 phony_target("test-config", a_test_config)
+phony_target("test-config-multiple", a_test_config_multiple)
 
 
 a_help = f"""
 @echo Base Commands:
 @echo test-config [cf={DEFAULT_CONFIG_PATH}] [ll={DEFAULT_LOG_LEVEL}]
+@echo test-config-multiple [cf={DEFAULT_CONFIG_PATH}] [ll={DEFAULT_LOG_LEVEL}]
 @echo
 """
 Default(phony_target("help", a_help))
