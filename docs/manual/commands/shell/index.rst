@@ -1,8 +1,8 @@
-==============
-Shell commands
-==============
+============
+Entry points
+============
 
-qtile uses a subcommand structure; various subcommands are listed below.
+Qtile uses a subcommand structure; various subcommands are listed below.
 Additionally, two other commands available in the scripts/ section of the
 repository are also documented below.
 

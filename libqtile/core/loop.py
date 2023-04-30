@@ -54,18 +54,17 @@ class LoopContext(contextlib.AbstractAsyncContextManager):
         loop: asyncio.AbstractEventLoop,
         context: dict,
     ) -> None:
-        # message is always present, but we'd prefer the exception if available
         if "exception" in context:
             exc = context["exception"]
             # CancelledErrors happen when we simply cancel the main task during
             # a normal restart procedure
             if not isinstance(exc, asyncio.CancelledError):
-                logger.exception(exc)
+                logger.exception("Exception in event loop:", exc_info=exc)  # noqa: G202
         else:
-            logger.error(f'unhandled error in event loop: {context["msg"]}')
+            logger.error("unhandled error in event loop: %s", context["msg"])
 
 
-class QtileEventLoopPolicy(asyncio.DefaultEventLoopPolicy):  # type: ignore
+class QtileEventLoopPolicy(asyncio.DefaultEventLoopPolicy):
     """
     Asyncio policy to ensure the main event loop is accessible
     even if `get_event_loop()` is called from a different thread.

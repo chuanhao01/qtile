@@ -60,10 +60,8 @@ def make_qtile(options):
             )
             copyfile(default_config_path, options.configfile)
             logger.info("Copied default_config.py to %s", options.configfile)
-        except Exception as e:
-            logger.exception(
-                "Failed to copy default_config.py to %s: (%s)", options.configfile, e
-            )
+        except Exception:
+            logger.exception("Failed to copy default_config.py to %s:", options.configfile)
 
     config = confreader.Config(options.configfile)
 
@@ -97,7 +95,7 @@ def start(options):
 
 
 def add_subcommand(subparsers, parents):
-    parser = subparsers.add_parser("start", parents=parents, help="Start the window manager")
+    parser = subparsers.add_parser("start", parents=parents, help="Start a Qtile session.")
     parser.add_argument(
         "-c",
         "--config",
@@ -106,7 +104,7 @@ def add_subcommand(subparsers, parents):
             path.join(getenv("XDG_CONFIG_HOME", "~/.config"), "qtile", "config.py")
         ),
         dest="configfile",
-        help="Use the specified configuration file",
+        help="Use the specified configuration file.",
     )
     parser.add_argument(
         "-s",
@@ -114,7 +112,7 @@ def add_subcommand(subparsers, parents):
         action="store",
         default=None,
         dest="socket",
-        help="Path of the Qtile IPC socket.",
+        help="Use specified socket for IPC.",
     )
     parser.add_argument(
         "-n",
@@ -122,13 +120,13 @@ def add_subcommand(subparsers, parents):
         action="store_true",
         default=False,
         dest="no_spawn",
-        help="Avoid spawning apps. (Used for restart)",
+        help="Avoid spawning apps. (Used when restarting Qtile)",
     )
     parser.add_argument(
         "--with-state",
         default=None,
         dest="state",
-        help="Pickled QtileState object (typically used only internally)",
+        help="Pickled QtileState object. (Used when restarting Qtile).",
     )
     parser.add_argument(
         "-b",

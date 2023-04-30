@@ -64,7 +64,7 @@ class _Extension(configurable.Configurable):
 
             if not isinstance(col, str) or not RGB.match(col):
                 logger.warning(
-                    f"Invalid extension '{c}' color: {col}. " f"Must be #RGB or #RRGGBB string."
+                    "Invalid extension '%s' color: %s. Must be #RGB or #RRGGBB string.", c, col
                 )
                 setattr(self, c, None)
                 continue
@@ -95,13 +95,13 @@ class RunCommand(_Extension):
     `client <http://docs.qtile.org/en/latest/manual/commands/scripting.html>`_.
     """
 
-    defaults = [
+    defaults: list[tuple[str, Any, str]] = [
         # NOTE: Do not use a list as a default value, since it would be shared
         #       among all the objects inheriting this class, and if one of them
         #       modified it, all the other objects would see the modified list;
         #       use a string or a tuple instead, which are immutable
         ("command", None, "the command to be launched (string or list with arguments)"),
-    ]  # type: list[tuple[str, Any, str]]
+    ]
 
     def __init__(self, **config):
         _Extension.__init__(self, **config)

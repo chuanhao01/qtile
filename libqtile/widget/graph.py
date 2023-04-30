@@ -227,7 +227,6 @@ class CPUGraph(_Graph):
         self.oldvalues = self._getvalues()
 
     def _getvalues(self):
-
         if isinstance(self.core, int):
             if self.core > psutil.cpu_count() - 1:
                 raise ValueError("No such core: {}".format(self.core))
@@ -350,7 +349,7 @@ class NetGraph(_Graph):
                 self.interface = self.get_main_iface()
             except RuntimeError:
                 logger.warning(
-                    "NetGraph - Automatic interface detection failed, " "falling back to 'eth0'"
+                    "NetGraph - Automatic interface detection failed, falling back to 'eth0'"
                 )
                 self.interface = "eth0"
         if self.bandwidth_type != "down" and self.bandwidth_type != "up":
@@ -373,7 +372,6 @@ class NetGraph(_Graph):
 
     @staticmethod
     def get_main_iface():
-
         # XXX: psutil doesn't have the facility to get the main interface,
         # so I'll just return the interface that has received the most traffic.
         #

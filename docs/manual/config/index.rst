@@ -1,6 +1,6 @@
-=============
-Configuration
-=============
+===============
+The config file
+===============
 
 Qtile is configured in Python. A script (``~/.config/qtile/config.py`` by
 default) is evaluated, and a small set of configuration variables are pulled
@@ -33,43 +33,6 @@ the key bindings are in the default config.
 The default config is not intended to be suitable for all users; it's mostly
 just there so qtile does /something/ when fired up, and so that it doesn't
 crash and cause you to lose all your work if you reload a bad config.
-
-Key Bindings
-------------
-
-The mod key for the default config is ``mod4``, which is typically bound to
-the "Super" keys, which are things like the windows key and the mac command
-key. The basic operation is:
-
-* ``mod + k`` or ``mod + j``: switch windows on the current stack
-* ``mod + <space>``: put focus on the other pane of the stack (when in stack
-  layout)
-* ``mod + <tab>``: switch layouts
-* ``mod + w``: close window
-* ``mod + <ctrl> + r``: reload the config
-* ``mod + <group name>``: switch to that group
-* ``mod + <shift> + <group name>``: send a window to that group
-* ``mod + <enter>``: start terminal guessed by ``libqtile.utils.guess_terminal``
-* ``mod + r``: start a little prompt in the bar so users can run arbitrary
-  commands
-
-The default config defines one screen and 8 groups, one for each letter in
-``asdfuiop``. It has a basic bottom bar that includes a group box, the current
-window name, a little text reminder that you're using the default config,
-a system tray, and a clock.
-
-The default configuration has several more advanced key combinations, but the
-above should be enough for basic usage of qtile.
-
-See :ref:`Keybindings in images <keybinding-img>` for visual
-keybindings in keyboard layout.
-
-Mouse Bindings
---------------
-
-By default, holding your ``mod`` key and clicking (and holding) a window will
-allow you to drag it around as a floating window.
-
 
 Configuration variables
 =======================
@@ -160,10 +123,7 @@ configuration variables that control specific aspects of Qtile's behavior:
         across windows in a layout.
     * - ``widget_defaults``
       - ``dict(font='sans', fontsize=12, padding=3)``
-      - Default settings for bar widgets.  Note: if the font file
-        associated with the font selected here is modified while Qtile
-        is running, Qtile may segfault (for details see `issue #2656
-        <https://github.com/qtile/qtile/issues/2656>`_).
+      - Default settings for bar widgets.
     * - ``reconfigure_screens``
       - ``True``
       - Controls whether or not to automatically reconfigure screens when there
@@ -187,49 +147,14 @@ configuration variables that control specific aspects of Qtile's behavior:
 Testing your configuration
 ==========================
 
-The best way to test changes to your configuration is with the provided Xephyr
-script. This will run Qtile with your ``config.py`` inside a nested X server
-and prevent your running instance of Qtile from crashing if something goes
-wrong.
+The best way to test changes to your configuration is with the provided scripts
+at `./scripts/xephyr`_ (X11) or `./scripts/wephyr`_ (Wayland). This will run
+Qtile with your ``config.py`` inside a nested window and prevent your running
+instance of Qtile from crashing if something goes wrong.
+
+.. _./scripts/xephyr: https://github.com/qtile/qtile/blob/master/scripts/xephyr
+.. _./scripts/wephyr: https://github.com/qtile/qtile/blob/master/scripts/wephyr
 
 See :ref:`Hacking Qtile <hacking>` for more information on using
 Xephyr.
 
-Starting Qtile
-==============
-
-There are several ways to start Qtile. The most common way is via an entry in
-your X session manager's menu. The default Qtile behavior can be invoked by
-creating a `qtile.desktop
-<https://github.com/qtile/qtile/blob/master/resources/qtile.desktop>`_ file in
-``/usr/share/xsessions``.
-
-A second way to start Qtile is a custom X session. This way allows you to
-invoke Qtile with custom arguments, and also allows you to do any setup you
-want (e.g. special keyboard bindings like mapping caps lock to control, setting
-your desktop background, etc.) before Qtile starts. If you're using an X
-session manager, you still may need to create a ``custom.desktop`` file similar
-to the ``qtile.desktop`` file above, but with ``Exec=/etc/X11/xsession``. Then,
-create your own ``~/.xsession``. There are several examples of user defined
-``xsession`` s in the `qtile-examples
-<https://github.com/qtile/qtile-examples>`_ repository.
-
-If there is no display manager such as SDDM, LightDM or other and there is need
-to start Qtile directly from ``~/.xinitrc`` do that by adding 
-``exec qtile start`` at the end.
-
-In very special cases, ex. Qtile crashing during session, then suggestion would
-be to start through a loop to save running applications::
-
-    while true; do
-        qtile
-    done
-
-Finally, if you're a gnome user, you can start integrate Qtile into Gnome's
-session manager and use gnome as usual.
-
-.. toctree::
-    :maxdepth: 1
-
-    without-dm
-    gnome

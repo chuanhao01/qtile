@@ -26,6 +26,7 @@ import os
 import shlex
 from functools import partial
 
+from libqtile.command.base import expose_command
 from libqtile.log_utils import logger
 from libqtile.widget import base
 
@@ -104,8 +105,8 @@ class Backlight(base.InLoopPollText):
 
         self.add_callbacks(
             {
-                "Button4": partial(self.cmd_change_backlight, ChangeDirection.UP),
-                "Button5": partial(self.cmd_change_backlight, ChangeDirection.DOWN),
+                "Button4": partial(self.change_backlight, ChangeDirection.UP),
+                "Button5": partial(self.change_backlight, ChangeDirection.DOWN),
             }
         )
 
@@ -119,7 +120,7 @@ class Backlight(base.InLoopPollText):
             with open(path, "r") as f:
                 return float(f.read().strip())
         except FileNotFoundError:
-            logger.debug("Failed to get %s" % path)
+            logger.debug("Failed to get %s", path)
             raise RuntimeError("Unable to read status for {}".format(os.path.basename(path)))
 
     def _get_info(self):
@@ -143,14 +144,13 @@ class Backlight(base.InLoopPollText):
                     f.write(str(round(value)))
             except PermissionError:
                 logger.warning(
-                    "Cannot set brightness: no write permission for {0}".format(
-                        self.brightness_file
-                    )
+                    "Cannot set brightness: no write permission for %s", self.brightness_file
                 )
         else:
             self.call_process(shlex.split(self.change_command.format(value)))
 
-    def cmd_change_backlight(self, direction, step=None):
+    @expose_command()
+    def change_backlight(self, direction, step=None):
         if not step:
             step = self.step
         if self._future and not self._future.done():

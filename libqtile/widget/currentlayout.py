@@ -27,9 +27,8 @@
 # SOFTWARE.
 import os
 
-import cairocffi
-
 from libqtile import bar, hook
+from libqtile.images import Img
 from libqtile.log_utils import logger
 from libqtile.widget import base
 
@@ -51,18 +50,25 @@ class CurrentLayout(base._TextBox):
 
         self.add_callbacks(
             {
-                "Button1": qtile.cmd_next_layout,
-                "Button2": qtile.cmd_prev_layout,
+                "Button1": qtile.next_layout,
+                "Button2": qtile.prev_layout,
             }
         )
 
-    def setup_hooks(self):
-        def hook_response(layout, group):
-            if group.screen is not None and group.screen == self.bar.screen:
-                self.text = layout.name
-                self.bar.draw()
+    def hook_response(self, layout, group):
+        if group.screen is not None and group.screen == self.bar.screen:
+            self.text = layout.name
+            self.bar.draw()
 
-        hook.subscribe.layout_change(hook_response)
+    def setup_hooks(self):
+        hook.subscribe.layout_change(self.hook_response)
+
+    def remove_hooks(self):
+        hook.unsubscribe.layout_change(self.hook_response)
+
+    def finalize(self):
+        self.remove_hooks()
+        base._TextBox.finalize(self)
 
 
 class CurrentLayoutIcon(base._TextBox):
@@ -77,6 +83,8 @@ class CurrentLayoutIcon(base._TextBox):
     use other directories, but then you need to specify those directories
     in `custom_icon_paths` argument for this plugin.
 
+    The widget will look for icons with a `png` or `svg` extension.
+
     The order of icon search is:
 
     - dirs in `custom_icon_paths` config argument
@@ -87,7 +95,7 @@ class CurrentLayoutIcon(base._TextBox):
     orientations = base.ORIENTATION_HORIZONTAL
 
     defaults = [
-        ("scale", 1, "Scale factor relative to the bar height.  " "Defaults to 1"),
+        ("scale", 1, "Scale factor relative to the bar height. Defaults to 1"),
         (
             "custom_icon_paths",
             [],
@@ -102,7 +110,6 @@ class CurrentLayoutIcon(base._TextBox):
     def __init__(self, **config):
         base._TextBox.__init__(self, "", **config)
         self.add_defaults(CurrentLayoutIcon.defaults)
-        self.scale = 1.0 / self.scale
 
         self.length_type = bar.STATIC
         self.length = 0
@@ -121,33 +128,43 @@ class CurrentLayoutIcon(base._TextBox):
 
         self.add_callbacks(
             {
-                "Button1": qtile.cmd_next_layout,
-                "Button2": qtile.cmd_prev_layout,
+                "Button1": qtile.next_layout,
+                "Button2": qtile.prev_layout,
             }
         )
+
+    def hook_response(self, layout, group):
+        if group.screen is not None and group.screen == self.bar.screen:
+            self.current_layout = layout.name
+            self.bar.draw()
 
     def _setup_hooks(self):
         """
         Listens for layout change and performs a redraw when it occurs.
         """
+        hook.subscribe.layout_change(self.hook_response)
 
-        def hook_response(layout, group):
-            if group.screen is not None and group.screen == self.bar.screen:
-                self.current_layout = layout.name
-                self.bar.draw()
-
-        hook.subscribe.layout_change(hook_response)
+    def _remove_hooks(self):
+        """
+        Listens for layout change and performs a redraw when it occurs.
+        """
+        hook.unsubscribe.layout_change(self.hook_response)
 
     def draw(self):
         if self.icons_loaded:
             try:
                 surface = self.surfaces[self.current_layout]
             except KeyError:
-                logger.error("No icon for layout {}".format(self.current_layout))
+                logger.error("No icon for layout %s", self.current_layout)
             else:
                 self.drawer.clear(self.background or self.bar.background)
-                self.drawer.ctx.set_source(surface)
+                self.drawer.ctx.save()
+                self.drawer.ctx.translate(
+                    (self.width - surface.width) / 2, (self.height - surface.height) / 2
+                )
+                self.drawer.ctx.set_source(surface.pattern)
                 self.drawer.ctx.paint()
+                self.drawer.ctx.restore()
                 self.drawer.draw(offsetx=self.offset, offsety=self.offsety, width=self.length)
         else:
             # Fallback to text
@@ -156,15 +173,18 @@ class CurrentLayoutIcon(base._TextBox):
 
     def _get_layout_names(self):
         """
-        Returns the list of lowercased strings for each available layout name.
+        Returns a list of tuples of lowercased layout name and class name strings for each available layout.
         """
-        return [layout.__class__.__name__.lower() for layout in self.qtile.config.layouts]
+        return [
+            (layout.name, layout.__class__.__name__.lower())
+            for layout in self.qtile.config.layouts
+        ]
 
     def _update_icon_paths(self):
         self.icon_paths = []
 
         # We allow user to override icon search path
-        self.icon_paths.extend(self.custom_icon_paths)
+        self.icon_paths.extend(os.path.expanduser(path) for path in self.custom_icon_paths)
 
         # We also look in ~/.icons/ and ~/.local/share/icons
         self.icon_paths.append(os.path.expanduser("~/.icons"))
@@ -177,56 +197,43 @@ class CurrentLayoutIcon(base._TextBox):
         self.icon_paths.append(os.path.join(root, "resources", "layout-icons"))
 
     def find_icon_file_path(self, layout_name):
-        icon_filename = "layout-{}.png".format(layout_name)
         for icon_path in self.icon_paths:
-            icon_file_path = os.path.join(icon_path, icon_filename)
-            if os.path.isfile(icon_file_path):
-                return icon_file_path
+            for extension in ["png", "svg"]:
+                icon_filename = "layout-{}.{}".format(layout_name, extension)
+                icon_file_path = os.path.join(icon_path, icon_filename)
+                if os.path.isfile(icon_file_path):
+                    return icon_file_path
 
     def _setup_images(self):
         """
         Loads layout icons.
         """
-        for layout_name in self._get_layout_names():
-            icon_file_path = self.find_icon_file_path(layout_name)
-            if icon_file_path is None:
-                logger.warning('No icon found for layout "{}"'.format(layout_name))
+        for names in self._get_layout_names():
+            layout_name = names[0]
+            # Python doesn't have an ordered set but we can use a dictionary instead
+            # First key is the layout's name (which may have been set by the user),
+            # the second is the class name. If these are the same (i.e. the user hasn't
+            # set a name) then there is only one key in the dictionary.
+            layouts = dict.fromkeys(names)
+            for layout in layouts.keys():
+                icon_file_path = self.find_icon_file_path(layout)
+                if icon_file_path:
+                    break
+            else:
+                logger.warning('No icon found for layout "%s"', layout_name)
                 icon_file_path = self.find_icon_file_path("unknown")
 
-            try:
-                img = cairocffi.ImageSurface.create_from_png(icon_file_path)
-            except (cairocffi.Error, IOError) as e:
-                # Icon file is guaranteed to exist at this point.
-                # If this exception happens, it means the icon file contains
-                # an invalid image or is not readable.
-                self.icons_loaded = False
-                logger.exception(
-                    'Failed to load icon from file "{}", '
-                    "error was: {}".format(icon_file_path, e.message)
-                )
-                return
+            img = Img.from_path(icon_file_path)
 
-            input_width = img.get_width()
-            input_height = img.get_height()
+            new_height = (self.height - 2) * self.scale
+            img.resize(height=new_height)
+            if img.width > self.length:
+                self.length = img.width + self.actual_padding * 2
 
-            sp = input_height / (self.bar.height - 1)
-
-            width = input_width / sp
-            if width > self.length:
-                self.length = int(width) + self.actual_padding * 2
-
-            imgpat = cairocffi.SurfacePattern(img)
-
-            scaler = cairocffi.Matrix()
-
-            scaler.scale(sp, sp)
-            scaler.scale(self.scale, self.scale)
-            factor = (1 - 1 / self.scale) / 2
-            scaler.translate(-width * factor, -width * factor)
-            scaler.translate(self.actual_padding * -1, 0)
-            imgpat.set_matrix(scaler)
-
-            imgpat.set_filter(cairocffi.FILTER_BEST)
-            self.surfaces[layout_name] = imgpat
+            self.surfaces[layout_name] = img
 
         self.icons_loaded = True
+
+    def finalize(self):
+        self._remove_hooks()
+        base._TextBox.finalize(self)
